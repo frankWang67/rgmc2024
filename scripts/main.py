@@ -439,16 +439,16 @@ def demo_grasp(group):
             cnt += 1
         time.sleep(0.5)
         
-        # moveit_arm_Q(group, ready2_Q)
-        ready2_pose = Pose()
-        ready2_pose.position.x = 0.0287372049037943
-        ready2_pose.position.y = 0.4187502578842489
-        ready2_pose.position.z = 0.5365272314674816
-        ready2_pose.orientation.x = -0.044119929020153215
-        ready2_pose.orientation.y = -0.998384206386284
-        ready2_pose.orientation.z = -0.0357684448508809
-        ready2_pose.orientation.w = 0.0017397283224901959
-        moveit_arm_straight(group, ready2_pose)
+        moveit_arm_Q(group, ready2_Q)
+        # ready2_pose = Pose()
+        # ready2_pose.position.x = 0.0287372049037943
+        # ready2_pose.position.y = 0.4187502578842489
+        # ready2_pose.position.z = 0.5365272314674816
+        # ready2_pose.orientation.x = -0.044119929020153215
+        # ready2_pose.orientation.y = -0.998384206386284
+        # ready2_pose.orientation.z = -0.0357684448508809
+        # ready2_pose.orientation.w = 0.0017397283224901959
+        # moveit_arm_straight(group, ready2_pose)
         
         pause = rospy.get_param('/pause_node', False)
         print(f"protective stop = {pause}")
@@ -640,7 +640,7 @@ if __name__=='__main__':
     # cv.imwrite(f"THUDA_run_{run}.jpg", img)
     group, eef_link, touch_links, scene = moveit_init()
     pt = point_camera2robot([work_space[0] - 0.03, work_space[1] - 0.03, desk_z])[0]
-    scene = add_objects(scene, eef_link, touch_links, [pt[0], pt[1]])
+    # scene = add_objects(scene, eef_link, touch_links, [pt[0], pt[1]])
     demo_grasp(group)
     # pointing up to the ceiling
     quit_Q = [-2.0059011618243616, -1.0062897841082972, -1.943353001271383, 1.4137471914291382, 1.5652360916137695, -3.121228043233053]

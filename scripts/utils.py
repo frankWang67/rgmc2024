@@ -1,7 +1,10 @@
+import rospy
 import numpy as np
 from scipy.spatial.transform import Rotation
 import rtde_receive
 from geometry_msgs.msg import Pose
+import tf2_ros
+from tf.transformations import quaternion_matrix
 
 def mask(cloud, work_space):
     # cloud (n*3)
@@ -28,41 +31,55 @@ def in_workspace(point, work_space):
     return (point[0] < x_max) & (point[0] > x_min) & (point[1] < y_max) & (point[1] > y_min)
 
 def point_camera2robot(points_cam):
-    # Transformation matrix from camera to robot arm
-    # matrix = np.array([[-1,  0,  0, -0.125 + 0.02],
-    #                    [ 0,  1,  0,  0.330 + 0.06],
-    #                    [ 0,  0, -1,  0.86],
-    #                    [ 0,  0,  0,      1]])
+    tf_buffer = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf_buffer)
 
-    # matrix = np.array([[ 0.99986685,  0.01230298, -0.01072033, -0.18000972 + 0.01],
-    #                    [ 0.0114317 , -0.99689907, -0.07785599,  0.47104822 + 0.02],
-    #                    [-0.01164495,  0.07772307, -0.99690698,  0.87668033],
-    #                    [ 0.        ,  0.        ,  0.        ,  1.        ]])
-
-    matrix = np.array([[-1,  0,  0,  0.02],
-                       [ 0,  1,  0,  0.46],
-                       [ 0,  0, -1,  0.78],
-                       [ 0,  0,  0,  1   ]])
+    try:
+        transform = tf_buffer.lookup_transform(
+            target_frame="base_link",
+            source_frame="camera_depth_optical_frame",
+            time=rospy.Time(0)
+        )
+    except (tf2_ros.LookupException, 
+            tf2_ros.ConnectivityException, 
+            tf2_ros.ExtrapolationException) as e:
+        rospy.logerr(f"TF error: {e}")
+        return None
+    
+    trans = transform.transform.translation
+    rot = transform.transform.rotation
+    T = quaternion_matrix([rot.x, rot.y, rot.z, rot.w])
+    T[:3, 3] = [trans.x, trans.y, trans.z]
 
     # Convert 3D coordinates to the robot arm coordinate system
     points_cam = np.reshape(points_cam, (-1, 3))
     homo_coordinates = np.concatenate((np.reshape(points_cam, (-1, 3)), np.ones((points_cam.shape[0], 1))), axis=1)
-    points_bot = np.dot(matrix, homo_coordinates.T)[:3, :]
+    points_bot = np.dot(T, homo_coordinates.T)[:3, :]
 
     return points_bot.T
 
 def rotmat_camera2robot(rotmat_cam):
     # Transformation matrix from camera to robot arm
 
-    # matrix = np.array([[ 1,  0,  0],
-    #                    [ 0, -1,  0],
-    #                    [ 0,  0, -1]])
+    tf_buffer = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf_buffer)
 
-    matrix = np.array([[-1,  0,  0],
-                       [ 0,  1,  0],
-                       [ 0,  0, -1]])
+    try:
+        transform = tf_buffer.lookup_transform(
+            target_frame="base_link",
+            source_frame="camera_depth_optical_frame",
+            time=rospy.Time(0)
+        )
+    except (tf2_ros.LookupException, 
+            tf2_ros.ConnectivityException, 
+            tf2_ros.ExtrapolationException) as e:
+        rospy.logerr(f"TF error: {e}")
+        return None
     
-    rotmat_bot = matrix @ rotmat_cam
+    rot = transform.transform.rotation
+    T = quaternion_matrix([rot.x, rot.y, rot.z, rot.w])[:3, :3]
+    
+    rotmat_bot = T @ rotmat_cam
     
     return rotmat_bot
 
