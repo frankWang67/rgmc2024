@@ -9,7 +9,6 @@ import torch
 import transforms3d as t3d
 from graspnetAPI import Grasp, GraspGroup
 import rospy
-import cv2 as cv
 # import rtde_receive, dashboard_client
 import copy
 from geometry_msgs.msg import Pose, PoseStamped
@@ -30,13 +29,13 @@ from collision_detector import ModelFreeCollisionDetector
 # from data_utils import CameraInfo, create_point_cloud_from_depth_image
 
 from grasp_ctrl import *
-from hand_ctrl import *
+from hand_ctrl_serial import *
 from utils import *
 from camera_utils import *
 from grasp_select import *
 
-desk_z = 0.89
-work_space = [-0.25, -0.19]
+desk_z = 0.76
+work_space = [-0.20, -0.19]
 box_size = (0.53, 0.36, 0.28)
 work_space3d = [work_space[0], work_space[0]+box_size[0], work_space[1], work_space[1]+box_size[1], desk_z-box_size[2], desk_z]
 color_mask = [0.67,0.73,0.67,0.73,0.67,0.73]
@@ -47,7 +46,7 @@ work_space3d_small[1] -= 0.02
 work_space3d_small[2] += 0.02
 work_space3d_small[3] -= 0.02
 
-# robot_ip = "192.168.50.3"
+# robot_ip = "192.168.0.5"
 
 place_idx = 0
 
@@ -198,6 +197,9 @@ def first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys):
 
     for i in range(len(gg)):
         g = gg[i]
+        # g_0 = copy.deepcopy(g)
+        direction = g.rotation_matrix[:, 0]
+        g.translation += 0.02 * direction
         # vis_grasp(g, cloud)
 
         for empty_g in empty_positions:
@@ -254,12 +256,12 @@ def first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys):
 
 def move_to_ready_pose(group, ready, start):
     if start:
-        wait_Q = [-1.4977286497699183, -1.172910515462057, -1.1576269308673304, -2.363500420247213, 1.561688780784607, -3.1218882242785853]
+        wait_Q = [-1.205728832875387, -0.8286803404437464, -1.5986011664019983, -2.291288201008932, 1.6084957122802734, 0.11409806460142136]
         moveit_arm_Q(group, wait_Q)
         start = False
         return start
-    ready1_Q = [-2.290628973637716, -1.6820748488055628, -0.8226297537433069, -2.169400993977682, 1.5608258247375488, -3.1219123045550745]
-    ready2_Q = [-1.3915146032916468, -1.4572833220111292, -1.466606918965475, -1.7834442297564905, 1.5608738660812378, -3.121863905583517]
+    ready1_Q = [-1.8702681700335901, -1.3190987745868128, -1.4258340040790003, -1.9169653097735804, 1.6062172651290894, -0.3316295782672327]
+    ready2_Q = [-1.2797868887530726, -1.3283169905291956, -1.4992502371417444, -1.823118034993307, 1.572111964225769, 0.25800126791000366]
     if not ready:
         moveit_arm_Q(group, ready1_Q)
         moveit_arm_Q(group, ready2_Q)
@@ -279,15 +281,18 @@ def vis_grasp(grasp, cloud):
     
 def get_place_Q():
     global place_idx
-    place_Qs = [[-2.4740336577044886, -1.5423687140094202, -1.715637509022848, -1.471898380910055, 1.5196125507354736, -4.037202898656027],
-                [-2.6795530954944056, -1.493768040333883, -1.7210066954242151, -1.5668724218951624, 1.570077657699585, -4.049003664647238],
-                [-2.419145647679464, -1.5286715666400355, -1.7161772886859339, -1.4508269468890589, 1.5865912437438965, -4.048680130635397]]
+    place_Qs = [[-2.094149891530172, -1.669199291859762, -1.6328619162188929, -1.4275620619403284, 1.6563191413879395, -0.4489520231830042],
+                [-2.022503677998678, -1.8268316427813929, -1.446491543446676, -1.4502790609942835, 1.6573026180267334, -0.3770178000079554],
+                [-1.9375389258014124, -2.1216023604022425, -1.0282495657550257, -1.5662768522845667, 1.6578902006149292, -0.29167205492128545]]
     choice = place_idx
     place_idx = (place_idx + 1) % 3
     return place_Qs[choice]
 
-def demo_grasp(group):
+def demo_grasp(tf_buffer, group):
     net = get_net()
+    
+    gripper = SerialGripper()
+
     # rtde_c = rtde_control.RTDEControlInterface(robot_ip)
     # rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
     # plan1 = None
@@ -300,9 +305,9 @@ def demo_grasp(group):
     
     # place_Q = [-2.292306963597433, -1.5220025221454065, -1.840621296559469, -1.311462704335348, 1.5635582208633423, -3.1163676420794886]
     place_Q = get_place_Q()
-    ready1_Q = [-2.290628973637716, -1.6820748488055628, -0.8226297537433069, -2.169400993977682, 1.5608258247375488, -3.1219123045550745]
-    ready2_Q = [-1.3915146032916468, -1.4572833220111292, -1.466606918965475, -1.7834442297564905, 1.5608738660812378, -3.121863905583517]
-    wait_Q = [-1.4977286497699183, -1.172910515462057, -1.1576269308673304, -2.363500420247213, 1.561688780784607, -3.1218882242785853]
+    ready1_Q = [-1.8702681700335901, -1.3190987745868128, -1.4258340040790003, -1.9169653097735804, 1.6062172651290894, -0.3316295782672327]
+    ready2_Q = [-1.2797868887530726, -1.3283169905291956, -1.4992502371417444, -1.823118034993307, 1.572111964225769, 0.25800126791000366]
+    wait_Q = [-1.205728832875387, -0.8286803404437464, -1.5986011664019983, -2.291288201008932, 1.6084957122802734, 0.11409806460142136]
     
     while True:
         end_points, cloud, cloud_without_wall, wall_pts = get_and_process_data()
@@ -346,15 +351,15 @@ def demo_grasp(group):
         translation = grasp.translation
         # translation[2] += 0.01
         direction = rotation[:, 0]
-        # translation += 0.04 * direction
+        translation += 0.02 * direction
         translation_prev = translation - 0.15 * direction
-        grasp_pose = moveit_target_pose_from_graspnet(translation, rotation)
+        grasp_pose = moveit_target_pose_from_graspnet(tf_buffer, translation, rotation)
         print(grasp_pose)
-        grasp_pose_prev = moveit_target_pose_from_graspnet(translation_prev, rotation)
+        grasp_pose_prev = moveit_target_pose_from_graspnet(tf_buffer, translation_prev, rotation)
 
         # force, pos = hand_ctrl(pos=width_default)
         # print("Force: ", force, "Position: ", pos)
-        gripper_goto(pos=width_default*1000)
+        gripper.set_pos(pos=width_default*1000)
         # if not ready:
         #     moveit_arm_Q(group, ready1_Q)
         #     moveit_arm_Q(group, ready2_Q)
@@ -401,7 +406,7 @@ def demo_grasp(group):
         #     moveit_arm_straight(group, pose)
         # force, pos = hand_ctrl(pos=width)
         # print("Force: ", force, "Position: ", pos)
-        gripper_goto(pos=width*1000)
+        gripper.set_pos(pos=width*1000)
         time.sleep(0.5)
         
         pause = rospy.get_param('/pause_node', False)
@@ -465,15 +470,15 @@ def demo_grasp(group):
         
         # force, pos = hand_ctrl(pos=width)
         # print("Force: ", force, "Position: ", pos)
-        pos = get_gripper_pos()
+        pos = gripper.get_pos()
         print(f"Gripper pos: {pos}")
         
-        if pos < 1.0:
+        if pos < 1:
             ready = True
             empty_positions.append(translation)
             # force, pos = hand_ctrl(pos=width_default)
             # print("Force: ", force, "Position: ", pos)
-            gripper_goto(pos=width_default*1000)
+            gripper.set_pos(pos=width_default*1000)
             moveit_arm_Q(group, wait_Q)
             continue
         moveit_arm_Q(group, ready1_Q)
@@ -490,7 +495,7 @@ def demo_grasp(group):
         # print("Force: ", force, "Position: ", pos)
         # force, pos = hand_ctrl(pos=width_default)
         # print("Force: ", force, "Position: ", pos)
-        gripper_goto(pos=width_default*1000)
+        gripper.set_pos(pos=width_default*1000)
 
 def demo_view():
     net = get_net()
@@ -506,8 +511,10 @@ def demo_view():
         
     # gg.sort_by_score()
     # g = gg[0]
-    g = first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys=0)
-    print(g)
+    # vis_grasp(g, cloud)
+
+    g, g_0 = first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys=0)
+    # print(g)
 
     # translation = np.array([-0.13183106, -0.00338926, 0.82900006])
     # rotation = np.array([[-7.2525686e-04,  9.9617106e-01, 8.7422721e-02],
@@ -527,6 +534,7 @@ def demo_view():
     # g = Grasp(args)
 
     vis_grasp(g, cloud)
+    vis_grasp(g_0, cloud)
 
     # points = np.array(cloud.points)
     # points -= g.translation
@@ -638,12 +646,17 @@ if __name__=='__main__':
     # # 归一化的图片转为255
     # img = (img * 255).astype(np.uint8)
     # cv.imwrite(f"THUDA_run_{run}.jpg", img)
+
+    tf_buffer = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf_buffer)
     group, eef_link, touch_links, scene = moveit_init()
-    pt = point_camera2robot([work_space[0] - 0.03, work_space[1] - 0.03, desk_z])[0]
+
+    # pt = point_camera2robot(tf_buffer, [work_space[0] - 0.03, work_space[1] - 0.03, desk_z])[0]
     # scene = add_objects(scene, eef_link, touch_links, [pt[0], pt[1]])
-    demo_grasp(group)
+
+    demo_grasp(tf_buffer, group)
     # pointing up to the ceiling
-    quit_Q = [-2.0059011618243616, -1.0062897841082972, -1.943353001271383, 1.4137471914291382, 1.5652360916137695, -3.121228043233053]
+    quit_Q = [-1.205728832875387, -0.8286803404437464, -1.5986011664019983, -2.291288201008932, 1.6084957122802734, 0.11409806460142136]
     moveit_arm_Q(group, quit_Q)
     
     # demo_view()
@@ -656,7 +669,7 @@ if __name__=='__main__':
     # moveit_arm_Q(group, place_Q)
     # hand_ctrl(pos=100)
 
-    # rtde_r = rtde_receive.RTDEReceiveInterface("192.168.50.3")
+    # rtde_r = rtde_receive.RTDEReceiveInterface("192.168.0.5")
     # current_pose = rtde_r.getActualTCPPose()
     # matrix = np.eye(4)
     # matrix[:3,:3] = Rotation.from_rotvec(current_pose[3:]).as_matrix()

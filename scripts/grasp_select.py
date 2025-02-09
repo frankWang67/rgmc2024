@@ -7,7 +7,7 @@ from graspnetAPI import Grasp
 
 from utils import mask
 
-desk_z = 0.85
+desk_z = 0.76
 
 def vis_grasp(grasp, cloud):
     gripper = grasp.to_open3d_geometry()
@@ -342,9 +342,9 @@ def move_grasp_to_center(g: Grasp, cloud: o3d.geometry.PointCloud, cloud_without
         # pcd_grasp_masked.colors = o3d.utility.Vector3dVector(colors_grasp_masked)
         # vis_grasp(g, pcd_grasp_masked)
         
-        left_collision = (np.sum(left_mask) + np.sum(left_wall_mask)) > 50
-        right_collision = (np.sum(right_mask) + np.sum(right_wall_mask)) > 50
-        bottom_collision = np.sum(bottom_mask) > 100
+        left_collision = (np.sum(left_mask) + np.sum(left_wall_mask)) > 10
+        right_collision = (np.sum(right_mask) + np.sum(right_wall_mask)) > 10
+        bottom_collision = np.sum(bottom_mask) > 10
         empty_grasp = np.sum(grasp_mask) < 100
         # print(f"{left_collision=}, {right_collision=}, {bottom_collision=}, {empty_grasp=}")
 

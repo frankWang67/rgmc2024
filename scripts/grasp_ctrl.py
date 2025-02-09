@@ -244,7 +244,7 @@ def moveit_arm_plan_reverse(group, plan):
         point.accelerations = [-a for a in point.accelerations]
     group.execute(rev_plan, wait=True)
 
-def safety_recover(ip="192.168.50.3", port=30002):
+def safety_recover(ip="192.168.0.5", port=30002):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # port = 29999
     # script = "robotmode\n"
@@ -265,7 +265,9 @@ if __name__ == "__main__":
     # # scene = add_objects(scene, eef_link, touch_links, worksapce)
     # # scene.clear()
     pose = group.get_current_pose().pose
-    print(pose)
+    print(f"{pose=}")
+    state = group.get_current_joint_values()
+    print(f"{state=}")
     
     # ready2_pose = Pose()
     # ready2_pose.position.x = 0.0287372049037943
@@ -282,7 +284,7 @@ if __name__ == "__main__":
     # place_pose = set_moveit_target_pose_from_pose6D(np.array([-0.44316225611707866, 0.21991324545586552, 0.40113923403237645, 2.0266614533147562, -2.397048211407335, -0.06679233827685184]))
     # moveit_arm(group, place_pose)
 
-    # rtde_r = rtde_receive.RTDEReceiveInterface("192.168.50.3")
+    # rtde_r = rtde_receive.RTDEReceiveInterface("192.168.0.5")
     # current_pose = rtde_r.getActualTCPPose()
 
     # matrix = np.eye(4)
@@ -304,7 +306,7 @@ if __name__ == "__main__":
     
     # print(group.get_current_state())
 
-    # robot_ip = "192.168.50.3"
+    # robot_ip = "192.168.0.5"
     # rtde_c = rtde_control.RTDEControlInterface(robot_ip)
     # rtde_c.triggerProtectiveStop()
     # # time.sleep(5)

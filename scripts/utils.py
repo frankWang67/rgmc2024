@@ -1,7 +1,6 @@
 import rospy
 import numpy as np
 from scipy.spatial.transform import Rotation
-import rtde_receive
 from geometry_msgs.msg import Pose
 import tf2_ros
 from tf.transformations import quaternion_matrix
@@ -30,10 +29,7 @@ def in_workspace(point, work_space):
     x_min, x_max, y_min, y_max, z_min, z_max = work_space
     return (point[0] < x_max) & (point[0] > x_min) & (point[1] < y_max) & (point[1] > y_min)
 
-def point_camera2robot(points_cam):
-    tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
-
+def point_camera2robot(tf_buffer, points_cam):
     try:
         transform = tf_buffer.lookup_transform(
             target_frame="base_link",
@@ -58,12 +54,7 @@ def point_camera2robot(points_cam):
 
     return points_bot.T
 
-def rotmat_camera2robot(rotmat_cam):
-    # Transformation matrix from camera to robot arm
-
-    tf_buffer = tf2_ros.Buffer()
-    tf_listener = tf2_ros.TransformListener(tf_buffer)
-
+def rotmat_camera2robot(tf_buffer, rotmat_cam):
     try:
         transform = tf_buffer.lookup_transform(
             target_frame="base_link",
@@ -82,11 +73,6 @@ def rotmat_camera2robot(rotmat_cam):
     rotmat_bot = T @ rotmat_cam
     
     return rotmat_bot
-
-def get_TCP_pose6D(robot_ip="192.168.50.3"):
-    rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
-    acutal_pose = rtde_r.getActualTCPPose()
-    return acutal_pose
 
 def pose6D_to_matrix(pose):
     translation = pose[:3]
@@ -138,7 +124,7 @@ def matrix_TCP2gripper(matrix_TCP):
     # theta = np.arccos((0.5 * width - 16.25) / 57)
     # d = 57e-3 * np.sin(theta) - 9e-3
     # matrix_base[2, 3] -= (d - depth + 0.17)
-    matrix_base[2, 3] -= 0.21
+    matrix_base[2, 3] -= 0.18
 
     x_modifier = np.array([[1,  0, 0, 0],
                            [0,  0, 1, 0],
@@ -174,7 +160,7 @@ def matrix_gripper2TCP(matrix_gripper):
     # d = 57e-3 * np.sin(theta) - 9e-3
     # matrix_base[2, 3] += (d - depth + 0.17)
     # matrix_base[0, 3] += (d - depth + 0.17)
-    matrix_base[0, 3] += 0.19
+    matrix_base[0, 3] += 0.18
 
     x_modifier = np.array([[1,  0, 0, 0],
                            [0,  0,-1, 0],
@@ -200,19 +186,19 @@ def pose6D_gripper2TCP(pose6D_gripper):
 
     return pose6D_TCP
 
-def get_target_grasp_pose6D(translation, rotation_matrix):
-    transl = point_camera2robot(translation)
+def get_target_grasp_pose6D(tf_buffer, translation, rotation_matrix):
+    transl = point_camera2robot(tf_buffer, translation)
     transl = transl[0]
-    rotmat = rotmat_camera2robot(rotation_matrix)
+    rotmat = rotmat_camera2robot(tf_buffer, rotation_matrix)
     rotvec = Rotation.from_matrix(rotmat).as_rotvec()
     pose6D = np.concatenate([transl, rotvec])
     target = pose6D_gripper2TCP(pose6D)
 
     return target
 
-def moveit_target_pose_from_graspnet(translation, rotation_matrix):
-    transl = point_camera2robot(translation)[0]
-    rotmat = rotmat_camera2robot(rotation_matrix)
+def moveit_target_pose_from_graspnet(tf_buffer, translation, rotation_matrix):
+    transl = point_camera2robot(tf_buffer, translation)[0]
+    rotmat = rotmat_camera2robot(tf_buffer, rotation_matrix)
     matrix = np.eye(4)
     matrix[:3, :3] = rotmat
     matrix[:3, 3] = transl
