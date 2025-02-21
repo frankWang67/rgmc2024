@@ -27,30 +27,39 @@ On the robot arm screen, press: Program the robot -> Empty program -> structure 
 Open another new terminal, and enter:
 
 ```bash
-# Bring up the Moveit! program for the robot arm
-roslaunch ur5_moveit_config moveit_planning_execution.launch
+# Bring up the robotiq gripper
+roslaunch robotiq_2f_gripper_control robotiq_action_server.launch
 ```
 
-Open a third terminal, and enter:
+Open a third new terminal, and enter:
+
+```bash
+# Bring up the Moveit! program for the robot
+roslaunch ur5robotiq_moveit_config moveit_group.launch
+```
+
+Open a fourth terminal, and enter:
 
 ```bash
 # Bring up the camera
 roslaunch realsense2_camera rs_camera.launch filters:=pointcloud
 ```
 
-Open a fourth terminal, and enter:
+Open a fifth terminal, and enter:
 
 ```bash
 # Publish the calibration between the robot arm and the camera
 roslaunch easy_handeye ur5_realsense_publish.launch
 ```
 
-Open a fifth terminal, and enter:
+Open a sixth terminal, and enter:
 
 ```bash
-# Enable the serial port of the gripper
-sudo chmod 666 /dev/ttyACM0
-# Run the main program
-source /home/wshf/rgmc2024new_ws/devel/setup.bash
 rosrun rgmc2024 main.py
+```
+
+If you want you visulize in RViz, open a new terminal and enter:
+
+```bash
+roslaunch ur5robotiq_moveit_config moveit_rviz.launch
 ```

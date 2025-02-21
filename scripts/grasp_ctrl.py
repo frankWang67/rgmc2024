@@ -50,7 +50,7 @@ def moveit_init():
     # group.set_planner_id("RRTstar")
     # group.set_planner_id("TRRTkConfigDefault")
     group.set_planner_id("BFMTkConfigDefault")
-    group.set_max_velocity_scaling_factor(1.0)
+    group.set_max_velocity_scaling_factor(0.5)
     eef_link = group.get_end_effector_link()
     robot = moveit_commander.RobotCommander()
     touch_links = robot.get_link_names(group=group_name)
@@ -71,49 +71,12 @@ def add_an_object(scene, obj_name, obj_pos, obj_size):
 
     return scene
 
-def add_objects(scene, eef_link, touch_links, workspace):
+def add_objects(scene):
     '''
         workspace is given as the 2D coordinate of the nearest convex of the box's underside in the world coordinate system
     '''
     scene.clear()
-    scene = add_an_object(scene, "table1", [0, 0.4, -0.2], (1.8, 0.8, 0.26))
-    # scene = add_an_object(scene, "table2", [0.5, -0.4, -0.2], (0.3, 0.56, 0.6))
-    # scene = add_an_object(scene, "wall1", [0.0, -0.4, 0.5], (0.5, 0.2, 1.0))
-    # scene = add_an_object(scene, "wall2", [-0.4, -0.4, 0.8], (1.4, 0.25, 0.4))
-    # scene = add_an_object(scene, "wall3", [0.3, -0.31, 0.5], (0.10, 0.10, 1.5))
-    # scene = add_an_object(scene, "wall4", [-0.3, -0.1, 0.05], (0.4, 0.3, 0.1))
-    # scene = add_an_object(scene, "wall5", [-0.8, 0, 0.4], (0.4, 0.4, 0.8))
-    scene = add_an_object(scene, "rack1", [0.41, 0.51, 0.38], (0.04, 0.04, 0.96))
-    scene = add_an_object(scene, "rack2", [0.41-0.84, 0.51, 0.38], (0.04, 0.04, 0.96))
-    # scene = add_an_object(scene, "rack3", [0.27-0.845/2, 0.405, 0.92], (1.5, 1.5, 0.04))
-    scene = add_an_object(scene, "rack3", [0.41-0.845/2, 0.51, 0.76], (1.5, 0.04, 0.04))
-    # scene = add_an_object(scene, "restrict1", [0.0, 0.16, 0.0], (0.16, 0.08, 0.10))
-    # scene = add_an_object(scene, "restrict2", [0.7, 0.2, 0.4], (0.2, 0.8, 0.8))
-
-    scene = add_an_object(scene, "camera", [0.41-0.845/2, 0.51-0.04, 0.76+0.02], (0.08, 0.08, 0.03))
-    # scene = add_an_object(scene, "restrict3", [0.27-0.845/2, 0.405, 0.96], (2.5, 2.5, 0.04))
-
-    # box_size = (0.56, 0.385, 0.04)
-    # box1_pos = [workspace[0], workspace[1] + box_size[1] / 2, 0.16 + box_size[2] / 2]
-    # scene = add_an_object(scene, "box1", box1_pos, (0.02, box_size[1], box_size[2]))
-    # box2_pos = [workspace[0] - box_size[0], workspace[1] + box_size[1] / 2, 0.16 + box_size[2] / 2]
-    # scene = add_an_object(scene, "box2", box2_pos, (0.02, box_size[1], box_size[2]))
-    # box3_pos = [workspace[0] - box_size[0] / 2, workspace[1], 0.16 + box_size[2] / 2]
-    # scene = add_an_object(scene, "box3", box3_pos, (box_size[0], 0.02, box_size[2]))
-    # box4_pos = [workspace[0] - box_size[0] / 2, workspace[1] + box_size[1], 0.16 + box_size[2] / 2]
-    # scene = add_an_object(scene, "box4", box4_pos, (box_size[0], 0.02, box_size[2]))
-    # obs1_pos = [box1_pos[0] - 0.012, workspace[1] + 0.16, 0.20]
-    # scene = add_an_object(scene, "obs1", obs1_pos, (0.024, 0.12, 0.06))
-    # obs2_pos = [box2_pos[0] + 0.012, workspace[1] + 0.16, 0.20]
-    # scene = add_an_object(scene, "obs2", obs2_pos, (0.024, 0.12, 0.06))
-
-    # gripper_pose = PoseStamped()
-    # gripper_pose.header.frame_id = eef_link
-    # gripper_pose.pose.position.x = 0.0
-    # gripper_pose.pose.position.y = 0.0
-    # gripper_pose.pose.position.z = 0.09-0.02
-    # scene.add_box("gripper", gripper_pose, size=(0.095, 0.02, 0.195))
-    # scene.attach_box(eef_link, "gripper", touch_links=touch_links)
+    scene = add_an_object(scene, "box_wall", [0.12, 0.13, 0.10], (0.555, 0.02, 0.20))
 
     return scene
 

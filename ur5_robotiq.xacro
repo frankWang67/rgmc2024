@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ur5_with_gripper">
+    <xacro:include filename="$(find ur_description)/urdf/ur5.xacro"/>
+    <xacro:include filename="$(find robotiq_2f_140_gripper_visualization)/urdf/robotiq_arg2f_140_model.xacro"/>
+
+    <link name="gripper_base_link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.036" length="0.017"/>
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="wrist_3_joint_to_gripper_base" type="fixed">
+        <parent link="wrist_3_link"/>
+        <child link="gripper_base_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <joint name="gripper_base_link_to_gripper" type="fixed">
+        <parent link="gripper_base_link"/>
+        <child link="robotiq_arg2f_base_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+</robot>

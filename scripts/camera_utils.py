@@ -1,4 +1,5 @@
-#!/home/ros505/anaconda3/envs/graspnet/bin/python
+#!/home/wshf/miniconda3/envs/graspnet/bin/python
+
 import rospy
 from sensor_msgs.msg import Image, PointCloud2, CameraInfo
 from sensor_msgs import point_cloud2
@@ -164,3 +165,10 @@ def float2RGBv2(rgb):
     b = b / 255
     rgb_array = np.stack((r, g, b), axis=1)
     return rgb_array
+
+if __name__ == "__main__":
+    run = 2
+    img = camera_shot("color")
+    # 归一化的图片转为255
+    img = (img * 255).astype(np.uint8)
+    cv2.imwrite(f"run_{run}.jpg", img)

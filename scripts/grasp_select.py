@@ -63,9 +63,9 @@ def box_detection_pcd(g: Grasp, wall_pts):
     d2 = d2 / np.linalg.norm(d2)
     rot = np.array([x_axis, d1, d2]).T
     points = np.dot(rot, points.T).T
-    wrist2_mask = (points[:, 0] >  0.25) & (points[:, 0] < 0.32) & \
-                  (points[:, 1] > -0.04) & (points[:, 1] < 0.20) & \
-                  (points[:, 2] > -0.15) & (points[:, 2] < 0.04)
+    wrist2_mask = (points[:, 0] > -0.32) & (points[:, 0] < -0.25) & \
+                  (points[:, 1] > -0.04) & (points[:, 1] <  0.20) & \
+                  (points[:, 2] > -0.15) & (points[:, 2] <  0.04)
 
     mask = wrist1_mask | wrist2_mask
     points = points[mask, :]
@@ -74,7 +74,7 @@ def box_detection_pcd(g: Grasp, wall_pts):
     # pcd.points = o3d.utility.Vector3dVector(points)
     # pcd.colors = o3d.utility.Vector3dVector(color)
     # o3d.visualization.draw_geometries([pcd])
-    return points.shape[0] > 10
+    return points.shape[0] > 5
 
 def grasp_object_pcd(g: Grasp, cloud: o3d.geometry.PointCloud):
     """
@@ -219,7 +219,7 @@ def move_grasp_to_center(g: Grasp, cloud: o3d.geometry.PointCloud, cloud_without
         # print("Empty grasp.")
         return None
     
-    thres = 0.8
+    thres = 0.5
     found = dot_product > thres
     rot_angle = 5
     g1 = copy.deepcopy(g)
@@ -292,18 +292,18 @@ def move_grasp_to_center(g: Grasp, cloud: o3d.geometry.PointCloud, cloud_without
     # while (left_collision or right_collision) and trys < 50:
     # while left_collision or right_collision:
         left_mask = (points_without_wall[:, 0] > -g.depth) & (points_without_wall[:, 0] < g.depth) & \
-                    (points_without_wall[:, 1] > g.width/2) & (points_without_wall[:, 1] < g.width/2 + 0.01) & \
+                    (points_without_wall[:, 1] > g.width/2) & (points_without_wall[:, 1] < g.width/2 + 0.02) & \
                     (points_without_wall[:, 2] > -g.height/2) & (points_without_wall[:, 2] < g.height/2)
         left_wall_mask = (wall[:, 0] > -0.10) & (wall[:, 0] < g.depth) & \
                          (wall[:, 1] > g.width/2) & (wall[:, 1] < g.width/2 + 0.035) & \
                          (wall[:, 2] > -g.height/2) & (wall[:, 2] < g.height/2)
         right_mask = (points_without_wall[:, 0] > -g.depth) & (points_without_wall[:, 0] < g.depth) & \
-                     (points_without_wall[:, 1] > -g.width/2 - 0.01) & (points_without_wall[:, 1] < -g.width/2) & \
+                     (points_without_wall[:, 1] > -g.width/2 - 0.02) & (points_without_wall[:, 1] < -g.width/2) & \
                      (points_without_wall[:, 2] > -g.height/2) & (points_without_wall[:, 2] < g.height/2)
         right_wall_mask = (wall[:, 0] > -0.10) & (wall[:, 0] < g.depth) & \
                           (wall[:, 1] > -g.width/2 - 0.035) & (wall[:, 1] < -g.width/2) & \
                           (wall[:, 2] > -g.height/2) & (wall[:, 2] < g.height/2)
-        bottom_mask = (points_without_wall[:, 0] < -0.03) & (points_without_wall[:, 0] > -0.10) & \
+        bottom_mask = (points_without_wall[:, 0] < -0.03) & (points_without_wall[:, 0] > -0.30) & \
                       (points_without_wall[:, 1] > -0.05) & (points_without_wall[:, 1] < 0.05) & \
                       (points_without_wall[:, 2] > -0.027) & (points_without_wall[:, 2] < 0.027)
         grasp_mask = (points_without_wall[:, 0] > -g.depth) & (points_without_wall[:, 0] < g.depth/2) & \
@@ -342,9 +342,9 @@ def move_grasp_to_center(g: Grasp, cloud: o3d.geometry.PointCloud, cloud_without
         # pcd_grasp_masked.colors = o3d.utility.Vector3dVector(colors_grasp_masked)
         # vis_grasp(g, pcd_grasp_masked)
         
-        left_collision = (np.sum(left_mask) + np.sum(left_wall_mask)) > 10
-        right_collision = (np.sum(right_mask) + np.sum(right_wall_mask)) > 10
-        bottom_collision = np.sum(bottom_mask) > 10
+        left_collision = (np.sum(left_mask) + np.sum(left_wall_mask)) > 30
+        right_collision = (np.sum(right_mask) + np.sum(right_wall_mask)) > 30
+        bottom_collision = np.sum(bottom_mask) > 30
         empty_grasp = np.sum(grasp_mask) < 100
         # print(f"{left_collision=}, {right_collision=}, {bottom_collision=}, {empty_grasp=}")
 
