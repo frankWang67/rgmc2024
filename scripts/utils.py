@@ -1,7 +1,9 @@
+#!/home/wshf/miniconda3/envs/graspnet/bin/python
+
 import rospy
 import numpy as np
 from scipy.spatial.transform import Rotation
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
 import tf2_ros
 from tf.transformations import quaternion_matrix
 
@@ -124,7 +126,7 @@ def matrix_TCP2gripper(matrix_TCP):
     # theta = np.arccos((0.5 * width - 16.25) / 57)
     # d = 57e-3 * np.sin(theta) - 9e-3
     # matrix_base[2, 3] -= (d - depth + 0.17)
-    matrix_base[2, 3] -= 0.18
+    matrix_base[2, 3] -= 0.21
 
     x_modifier = np.array([[1,  0, 0, 0],
                            [0,  0, 1, 0],
@@ -160,7 +162,7 @@ def matrix_gripper2TCP(matrix_gripper):
     # d = 57e-3 * np.sin(theta) - 9e-3
     # matrix_base[2, 3] += (d - depth + 0.17)
     # matrix_base[0, 3] += (d - depth + 0.17)
-    matrix_base[0, 3] += 0.18
+    matrix_base[0, 3] += 0.21
 
     x_modifier = np.array([[1,  0, 0, 0],
                            [0,  0,-1, 0],
@@ -237,10 +239,35 @@ def moveit_target_pose_from_pose6D(pose6D):
 
     return target
 
-if __name__ == "__main__":
-    translation = np.array([0.07492547, 0.16113761, 0.81200004])
-    print(point_camera2robot(translation)[0])
+def get_Tmatrix_between_links(tf_buffer, source_frame, target_frame):
+    try:
+        transform = tf_buffer.lookup_transform(
+            target_frame=target_frame,
+            source_frame=source_frame,
+            time=rospy.Time(0)
+        )
+    except (tf2_ros.LookupException, 
+            tf2_ros.ConnectivityException, 
+            tf2_ros.ExtrapolationException) as e:
+        rospy.logerr(f"TF error: {e}")
+        return
+    
+    matrix = quaternion_matrix([transform.transform.rotation.x,
+                                transform.transform.rotation.y,
+                                transform.transform.rotation.z,
+                                transform.transform.rotation.w])
+    matrix[:3, 3] = [transform.transform.translation.x,
+                     transform.transform.translation.y,
+                     transform.transform.translation.z]
+    
+    return matrix
 
-    # rotvec = np.array([2.985584712207952, -0.6134870744994786, -0.1187754537936827])
-    # quat = Rotation.from_rotvec(rotvec).as_quat()
-    # print(quat)
+if __name__ == "__main__":
+    import time
+    rospy.init_node("utils_test")
+    tf_buffer = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf_buffer)
+    time.sleep(1)
+
+    matrix = get_Tmatrix_between_links(tf_buffer, "wrist_1_link", "wrist_2_link")
+    print(matrix)

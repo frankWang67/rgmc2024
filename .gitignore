@@ -1,1 +1,9 @@
 __pycache__
+
+*.jpg
+
+first.launch
+combined.launch
+arm_ctrl_rtde.py
+hand_ctrl.py
+hand_ctrl_serial.py

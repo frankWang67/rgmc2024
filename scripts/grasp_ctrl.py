@@ -47,10 +47,11 @@ def move_arm(target_pose, rtde_c, rtde_r):
 def moveit_init():
     group_name = "manipulator"  # 指定机械臂的move_group名称
     group = MoveGroupCommander(group_name)
-    # group.set_planner_id("RRTstar")
-    # group.set_planner_id("TRRTkConfigDefault")
-    group.set_planner_id("BFMTkConfigDefault")
-    group.set_max_velocity_scaling_factor(0.5)
+    # group.set_planner_id("RRTConnectkConfigDefault")
+    # # group.set_planner_id("LazyPRMkConfigDefault")
+    # # group.set_planner_id("BFMTkConfigDefault")
+    # # group.set_planning_time(10) # seconds
+    # group.set_max_velocity_scaling_factor(1.0)
     eef_link = group.get_end_effector_link()
     robot = moveit_commander.RobotCommander()
     touch_links = robot.get_link_names(group=group_name)
@@ -76,7 +77,9 @@ def add_objects(scene):
         workspace is given as the 2D coordinate of the nearest convex of the box's underside in the world coordinate system
     '''
     scene.clear()
-    scene = add_an_object(scene, "box_wall", [0.12, 0.13, 0.10], (0.555, 0.02, 0.20))
+    scene = add_an_object(scene, "box_wall", [0.21, 0.15, 0.05], (0.555, 0.02, 0.10))
+    scene = add_an_object(scene, "obstacle", [0.30, 0.00, 0.05], (0.10 , 0.10, 0.10))
+    scene = add_an_object(scene, "back_obstacle", [0.50, -0.40, 0.05], (1.00 , 0.60, 0.10))
 
     return scene
 
@@ -107,13 +110,15 @@ def moveit_arm(group, pose):
     #     cnt += 1
     #     if not success:
     #         rospy.logerr("No plan found to move to pose, retrying...")
+
+    group.set_start_state_to_current_state()
     success, plan, _, _ = group.plan()
     if not success:
         # rospy.logerr("No plan found to move to pose after 5 tries")
         rospy.logerr("No plan found to move to pose")
         return None
     
-    if len(plan.joint_trajectory.points) > 12:
+    if len(plan.joint_trajectory.points) > 100:
         rospy.logerr("Too many points in the plan")
         return None
     
@@ -224,60 +229,17 @@ def safety_recover(ip="192.168.0.5", port=30002):
 if __name__ == "__main__":
     rospy.init_node('ur5_moveit_demo')
     group, eef_link, touch_links, scene = moveit_init()
-    # # worksapce = [0.10, 0.23]
-    # # scene = add_objects(scene, eef_link, touch_links, worksapce)
-    # # scene.clear()
-    pose = group.get_current_pose().pose
-    print(f"{pose=}")
-    state = group.get_current_joint_values()
-    print(f"{state=}")
     
-    # ready2_pose = Pose()
-    # ready2_pose.position.x = 0.0287372049037943
-    # ready2_pose.position.y = 0.4187502578842489
-    # ready2_pose.position.z = 0.5365272314674816
-    # ready2_pose.orientation.x = -0.044119929020153215
-    # ready2_pose.orientation.y = -0.998384206386284
-    # ready2_pose.orientation.z = -0.0357684448508809
-    # ready2_pose.orientation.w = 0.0017397283224901959
-    # moveit_arm_straight(group, ready2_pose)
+    # target_pose = Pose()
+    # target_pose.position.x = 0.18337249425842814
+    # target_pose.position.y = 0.23131284480172665
+    # target_pose.position.z = 0.2853755274054901
+    # target_pose.orientation.x = -0.07897989095485924
+    # target_pose.orientation.y = 0.9739419470620377
+    # target_pose.orientation.z = 0.08588756482060517
+    # target_pose.orientation.w = -0.19448029922578727
 
-    # ready_pose = set_moveit_target_pose_from_pose6D(np.array([-0.18134556925637263, -0.13751579055337806, 0.6162773898285325, 2.985584712207952, -0.6134870744994786, -0.1187754537936827]))
-    # moveit_arm(group, ready_pose)
-    # place_pose = set_moveit_target_pose_from_pose6D(np.array([-0.44316225611707866, 0.21991324545586552, 0.40113923403237645, 2.0266614533147562, -2.397048211407335, -0.06679233827685184]))
-    # moveit_arm(group, place_pose)
+    # moveit_arm(group, target_pose)
 
-    # rtde_r = rtde_receive.RTDEReceiveInterface("192.168.0.5")
-    # current_pose = rtde_r.getActualTCPPose()
-
-    # matrix = np.eye(4)
-    # matrix[:3,:3] = Rotation.from_rotvec(current_pose[3:]).as_matrix()
-    # matrix[:3,3] = current_pose[:3]
-    # modifier = np.diag([-1,-1,1,1])
-    # matrix = modifier @ matrix
-    # current_pose = np.zeros(6)
-    # current_pose[:3] = matrix[:3,3]
-    # current_pose[3:] = Rotation.from_matrix(matrix[:3,:3]).as_rotvec()
-
-    # target_pose = current_pose.copy()
-    # target_pose[2] -= 0.2
-    # moveit_arm_straight(group, current_pose, target_pose)
-
-    # joint_goal = group.get_current_joint_values()
-    # print(joint_goal)
-    # print(type(joint_goal))
-    
-    # print(group.get_current_state())
-
-    # robot_ip = "192.168.0.5"
-    # rtde_c = rtde_control.RTDEControlInterface(robot_ip)
-    # rtde_c.triggerProtectiveStop()
-    # # time.sleep(5)
-    # rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
-    # print(rtde_r.isProtectiveStopped())
-    # rtde_d = dashboard_client.DashboardClient(robot_ip)
-    # rtde_d.unlockProtectiveStop()
-    # # ready_pose = np.array([0.19163815461762745, -0.05591318535543053, 0.395529082562748, 2.5717712026261514, 1.057617377490304, -0.06494175748077329])
-    # # move_arm(ready_pose)
-
-    # safety_recover()
+    current_q = group.get_current_joint_values()
+    print(current_q)

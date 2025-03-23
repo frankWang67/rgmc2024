@@ -211,67 +211,67 @@ def move_grasp_to_center(g: Grasp, cloud: o3d.geometry.PointCloud, cloud_without
         # if too_low_1 and too_low_2:
         #     g.translation[2] = desk_z - g.depth - 0.002
 
-    # normals adjustment
-    dot_product = grasp_point_normals_dot(g, cloud)
-    # print(f"{dot_product=}")
+    # # normals adjustment
+    # dot_product = grasp_point_normals_dot(g, cloud)
+    # # print(f"{dot_product=}")
 
-    if dot_product is None:
-        # print("Empty grasp.")
-        return None
+    # if dot_product is None:
+    #     # print("Empty grasp.")
+    #     return None
     
-    thres = 0.5
-    found = dot_product > thres
-    rot_angle = 5
-    g1 = copy.deepcopy(g)
-    g2 = copy.deepcopy(g)
-    while (not found) and (rot_angle < 46):
-        rot_mat1 = Rotation.from_euler('x', rot_angle, degrees=True).as_matrix()
-        g1.rotation_matrix = np.dot(g.rotation_matrix, rot_mat1.T)
-        dot_product = grasp_point_normals_dot(g1, cloud)
-        if dot_product is None:
-            rot_angle += 5
-            continue
-        found = dot_product > thres
-        if found:
-            g = g1
-            break
+    # thres = 0.5
+    # found = dot_product > thres
+    # rot_angle = 5
+    # g1 = copy.deepcopy(g)
+    # g2 = copy.deepcopy(g)
+    # while (not found) and (rot_angle < 46):
+    #     rot_mat1 = Rotation.from_euler('x', rot_angle, degrees=True).as_matrix()
+    #     g1.rotation_matrix = np.dot(g.rotation_matrix, rot_mat1.T)
+    #     dot_product = grasp_point_normals_dot(g1, cloud)
+    #     if dot_product is None:
+    #         rot_angle += 5
+    #         continue
+    #     found = dot_product > thres
+    #     if found:
+    #         g = g1
+    #         break
         
-        rot_mat2 = Rotation.from_euler('x', -rot_angle, degrees=True).as_matrix()
-        g2.rotation_matrix = np.dot(g.rotation_matrix, rot_mat2.T)
-        dot_product = grasp_point_normals_dot(g2, cloud)
-        if dot_product is None:
-            rot_angle += 5
-            continue
-        found = dot_product > thres
-        if found:
-            g = g2
-            break
-        rot_angle += 5
-    if not found:
-        # print("Normals adjustment failed")
-        return None
+    #     rot_mat2 = Rotation.from_euler('x', -rot_angle, degrees=True).as_matrix()
+    #     g2.rotation_matrix = np.dot(g.rotation_matrix, rot_mat2.T)
+    #     dot_product = grasp_point_normals_dot(g2, cloud)
+    #     if dot_product is None:
+    #         rot_angle += 5
+    #         continue
+    #     found = dot_product > thres
+    #     if found:
+    #         g = g2
+    #         break
+    #     rot_angle += 5
+    # if not found:
+    #     # print("Normals adjustment failed")
+    #     return None
 
-    # center adjustment
+    # # center adjustment
     points_without_wall = np.array(cloud_without_wall.points)
-    transl = g.translation.copy()
-    search_range = 0.05
-    search_center = g.translation
-    search_space = [search_center[0] - search_range, search_center[0] + search_range,
-                    search_center[1] - search_range, search_center[1] + search_range,
-                    search_center[2] - search_range, search_center[2] + search_range]
-    idxs = mask(points_without_wall, search_space)
-    points_masked = points_without_wall[idxs]
-    colors_masked = np.array(cloud_without_wall.colors)[idxs]
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points_masked)
-    pcd.colors = o3d.utility.Vector3dVector(colors_masked)
-    center = pcd.get_center()
-    # g.translation = (transl + center) / 2
-    g.translation = center
-    g.translation[2] = transl[2]
-    # g.translation[2] = (transl[2] + center[2]) / 2
-    # print(f"{g.translation=}")
-    # vis_grasp(g, cloud)
+    # transl = g.translation.copy()
+    # search_range = 0.05
+    # search_center = g.translation
+    # search_space = [search_center[0] - search_range, search_center[0] + search_range,
+    #                 search_center[1] - search_range, search_center[1] + search_range,
+    #                 search_center[2] - search_range, search_center[2] + search_range]
+    # idxs = mask(points_without_wall, search_space)
+    # points_masked = points_without_wall[idxs]
+    # colors_masked = np.array(cloud_without_wall.colors)[idxs]
+    # pcd = o3d.geometry.PointCloud()
+    # pcd.points = o3d.utility.Vector3dVector(points_masked)
+    # pcd.colors = o3d.utility.Vector3dVector(colors_masked)
+    # center = pcd.get_center()
+    # # g.translation = (transl + center) / 2
+    # g.translation = center
+    # g.translation[2] = transl[2]
+    # # g.translation[2] = (transl[2] + center[2]) / 2
+    # # print(f"{g.translation=}")
+    # # vis_grasp(g, cloud)
 
     points = np.array(cloud.points)
     points -= g.translation
@@ -350,6 +350,9 @@ def move_grasp_to_center(g: Grasp, cloud: o3d.geometry.PointCloud, cloud_without
 
         if empty_grasp:
             return None
+        
+        if (not left_collision) and (not right_collision) and (not bottom_collision):
+            break
 
         direction = g.rotation_matrix[:, 1]
         prob1 = 0.45

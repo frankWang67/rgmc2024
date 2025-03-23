@@ -35,12 +35,12 @@ from camera_utils import *
 from grasp_select import *
 
 desk_z = 0.76
-work_space = [-0.26, -0.13]
-box_size = (0.52, 0.36, 0.28)
+work_space = [-0.22, -0.12]
+box_size = (0.51, 0.32, 0.28)
 work_space3d = [work_space[0], work_space[0]+box_size[0], work_space[1], work_space[1]+box_size[1], desk_z-box_size[2], desk_z]
 work_space3d_small = work_space3d.copy()
-work_space3d_small[0] += 0.02
-work_space3d_small[1] -= 0.02
+work_space3d_small[0] += 0.05
+work_space3d_small[1] -= 0.05
 work_space3d_small[2] += 0.02
 work_space3d_small[3] -= 0.02
 
@@ -173,7 +173,7 @@ def first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys):
     gg.heights = np.ones(len(gg)) * 20e-3
     # gg = collision_detection(gg, cloud)
     # vis_grasps(gg, cloud)
-    gg = collision_detection(gg, np.array(cloud.points))
+    # gg = collision_detection(gg, np.array(cloud.points))
     # vis_grasps(gg, cloud)
     
     # box_pos = [
@@ -194,10 +194,15 @@ def first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys):
     # return gg[0]
 
     for i in range(len(gg)):
+        # to_quit = input("Quit? (y/n): ")
+        # if to_quit == 'y':
+        #     exit(0)
+
         g = gg[i]
+        g.width += 0.02
         # g_0 = copy.deepcopy(g)
-        direction = g.rotation_matrix[:, 0]
-        g.translation += 0.02 * direction
+        # direction = g.rotation_matrix[:, 0]
+        # g.translation += 0.02 * direction
         # vis_grasp(g, cloud)
 
         # for empty_g in empty_positions:
@@ -235,10 +240,10 @@ def first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys):
             # print("Not in workspace 2")
             continue
 
-        x_axis = g.rotation_matrix[:, 0]
-        theta = np.arccos(np.dot(x_axis, np.array([0, 0, 1])))
-        if theta > np.pi / 2:
-            continue
+        # x_axis = g.rotation_matrix[:, 0]
+        # theta = np.arccos(np.dot(x_axis, np.array([0, 0, 1])))
+        # if theta > np.pi / 2:
+        #     continue
 
         # vertex1 = g.translation + g.depth/2 * g.rotation_matrix[:, 0] + g.width/2 * g.rotation_matrix[:, 1]
         # vertex2 = g.translation + g.depth/2 * g.rotation_matrix[:, 0] - g.width/2 * g.rotation_matrix[:, 1]
@@ -254,7 +259,7 @@ def first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys):
 
 def move_to_ready_pose(group, ready, start):
     if start:
-        wait_Q = [-1.5708430449115198, -0.7167013327227991, -1.678051773701803, -2.1457460562335413, 1.6216870546340942, -1.4270919005023401]
+        wait_Q = [-1.4126904646502894, -0.7241709868060511, -1.3692906538592737, -2.5246546904193323, 1.565276861190796, -1.2765572706805628]
         moveit_arm_Q(group, wait_Q)
         start = False
         return start
@@ -279,7 +284,7 @@ def vis_grasp(grasp, cloud):
     
 def get_place_Q():
     global place_idx
-    place_Qs = [[-1.4058273474322718, -1.7367013136493128, -1.618481461201803, -1.0616219679461878, 1.5738269090652466, -1.269189182912008],
+    place_Qs = [[-1.5376175085650843, -1.6826584974872034, -1.7544377485858362, -0.3596141974078577, 1.576860785484314, -1.4896062056170862],
                 [-1.603865925465719, -1.76933461824526, -1.5779779593097132, -1.0756223837481897, 1.6310282945632935, -1.4588821570025843],
                 [-1.764393154774801, -1.8328073660479944, -1.4954283873187464, -1.1074593702899378, 1.6759133338928223, -1.6134985128985804]]
     choice = place_idx
@@ -305,24 +310,30 @@ def demo_grasp(tf_buffer, group):
     place_Q = get_place_Q()
     ready1_Q = [-1.5708311239825647, -1.0874975363360804, -1.898360554371969, -0.6553075949298304, 1.6215910911560059, -1.4271395842181605]
     ready2_Q = [-1.5707948843585413, -1.1816704908954065, -1.5608304182635706, -1.7979419867144983, 1.6216390132904053, -1.4271395842181605]
-    wait_Q = [-1.5708430449115198, -0.7167013327227991, -1.678051773701803, -2.1457460562335413, 1.6216870546340942, -1.4270919005023401]
+    wait_Q = [-1.4126904646502894, -0.7241709868060511, -1.3692906538592737, -2.5246546904193323, 1.565276861190796, -1.2765572706805628]
     
     while True:
         end_points, cloud, cloud_without_wall, wall_pts = get_and_process_data()
         # end_points, cloud, cloud_without_wall = get_and_process_datav2(mask=mask)
         gg = get_grasps(net, end_points)
         
-        with ThreadPoolExecutor() as executor:
-            grasp_future = executor.submit(first_feasible_grasp, gg, cloud, cloud_without_wall, wall_pts, 0)
-            execute_future = executor.submit(move_to_ready_pose, group, ready, start)
-            grasp = grasp_future.result()
-            start = execute_future.result()
+        # with ThreadPoolExecutor() as executor:
+        #     grasp_future = executor.submit(first_feasible_grasp, gg, cloud, cloud_without_wall, wall_pts, 0)
+        #     execute_future = executor.submit(move_to_ready_pose, group, ready, start)
+        #     grasp = grasp_future.result()
+        #     start = execute_future.result()
+        grasp = first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys)
+        print("moveit_to_ready_pose in line 322 start")
+        # start = move_to_ready_pose(group, ready, start)
+        print("moveit_to_ready_pose in line 322 end")
         
         # grasp = first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts)
         
         if grasp is None:
             print("No feasible grasp found.")
+            print("moveit_arm_Q in line 330 start")
             moveit_arm_Q(group, wait_Q)
+            print("moveit_arm_Q in line 330 end")
             ready = True
             trys += 1
             if trys >= 5:
@@ -331,18 +342,14 @@ def demo_grasp(tf_buffer, group):
             continue
         print("Feasible grasp found.")
 
-        # vis_grasp(grasp, cloud)
-        # go_on = input("Continue? (y/n): ")
-        # if go_on == 'n':
-        #     continue
-        # elif go_on == 'q':
-        #     return
-        
-        # start = move_to_ready_pose(group, ready, start)
+        vis_grasp(grasp, cloud_without_wall)
+        go_on = input("Continue? (y/n): ")
+        if go_on == 'n':
+            continue
+        elif go_on == 'q':
+            return
 
-        # width_default = 100
         width_default = grasp.width
-        width_default += 0.05
         # width_default = width_default if width_default <= 100 else 100
         width = 0.0
         rotation = grasp.rotation_matrix
@@ -350,7 +357,7 @@ def demo_grasp(tf_buffer, group):
         # translation[2] += 0.01
         direction = rotation[:, 0]
         translation += 0.02 * direction
-        translation_prev = translation - 0.15 * direction
+        translation_prev = translation - 0.10 * direction
         grasp_pose = moveit_target_pose_from_graspnet(tf_buffer, translation, rotation)
         print(grasp_pose)
         grasp_pose_prev = moveit_target_pose_from_graspnet(tf_buffer, translation_prev, rotation)
@@ -372,11 +379,17 @@ def demo_grasp(tf_buffer, group):
         #         print(f"No feasible grasp found after {trys} tries.")
         #         return
         #     continue
+
+        moveit_arm_Q(group, ready2_Q)
         
+        print("moveit_arm in line 380 start")
         moveit_arm(group, grasp_pose_prev)
+        print("moveit_arm in line 380 end")
         
         trys = 0
+        print("moveit_arm_straight in line 385 start")
         moveit_arm_straight(group, grasp_pose, grasp_pose_prev)
+        print("moveit_arm_straight in line 385 end")
         
         # q_prev = group.get_current_joint_values()
         
@@ -420,9 +433,12 @@ def demo_grasp(tf_buffer, group):
             rate.sleep()
             cnt += 1
         
-        pose_upper = copy.deepcopy(grasp_pose)
-        pose_upper.position.z += 0.08
-        moveit_arm_straight(group, grasp_pose_prev, pose_upper)
+        # pose_upper = copy.deepcopy(grasp_pose)
+        # pose_upper.position.z += 0.18
+        print("moveit_arm_straight in line 433 start")
+        # moveit_arm_straight(group, grasp_pose_prev, pose_upper)
+        moveit_arm_straight(group, grasp_pose_prev, grasp_pose)
+        print("moveit_arm_straight in line 433 end")
         # back_pose = copy.deepcopy(grasp_pose)
         # back_pose.position.z += 0.2
         # moveit_arm_straight(group, back_pose)
@@ -442,7 +458,10 @@ def demo_grasp(tf_buffer, group):
             cnt += 1
         time.sleep(0.5)
         
-        moveit_arm_Q(group, ready2_Q)
+        print("moveit_arm_Q in line 455 start")
+        pre_place_Q = [-1.4204400221454065, -0.8840416113482874, -1.5934847036944788, -1.6350296179400843, 1.5654805898666382, -1.2844165007220667]
+        moveit_arm_Q(group, pre_place_Q)
+        print("moveit_arm_Q in line 455 end")
         # ready2_pose = Pose()
         # ready2_pose.position.x = 0.0287372049037943
         # ready2_pose.position.y = 0.4187502578842489
@@ -477,10 +496,16 @@ def demo_grasp(tf_buffer, group):
             # force, pos = hand_ctrl(pos=width_default)
             # print("Force: ", force, "Position: ", pos)
             gripper.set_pos(pos=width_default)
+            print("moveit_arm_Q in line 492 start")
             moveit_arm_Q(group, wait_Q)
+            print("moveit_arm_Q in line 492 end")
             continue
+        print("moveit_arm_Q in line 496 start")
         moveit_arm_Q(group, ready1_Q)
+        print("moveit_arm_Q in line 496 end")
+        print("moveit_arm_Q in line 499 start")
         moveit_arm_Q(group, place_Q)
+        print("moveit_arm_Q in line 499 end")
         ready = False
 
         # moveit_arm_plan_reverse(group, plan_grasp)
@@ -494,6 +519,12 @@ def demo_grasp(tf_buffer, group):
         # force, pos = hand_ctrl(pos=width_default)
         # print("Force: ", force, "Position: ", pos)
         gripper.set_pos(pos=width_default)
+        print("moveit_arm_Q in line 515 start")
+        moveit_arm_Q(group, ready1_Q)
+        print("moveit_arm_Q in line 515 end")
+        print("moveit_arm_Q in line 518 start")
+        moveit_arm_Q(group, wait_Q)
+        print("moveit_arm_Q in line 518 end")
 
 def demo_view():
     net = get_net()
@@ -505,15 +536,16 @@ def demo_view():
     gg = get_grasps(net, end_points)
     # if cfgs.collision_thresh > 0:
     #     gg = collision_detection(gg, np.array(cloud.points))
-    vis_grasps(gg, cloud)
+    # vis_grasps(gg, cloud)
         
-    # gg.sort_by_score()
+    gg.sort_by_score()
+    vis_grasps(gg[:20], cloud)
     # g = gg[0]
     # vis_grasp(g, cloud)
 
     # --------------------------------------------------------------------------------
-    g = first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys=0)
-    vis_grasp(g, cloud)
+    # g = first_feasible_grasp(gg, cloud, cloud_without_wall, wall_pts, trys=0)
+    # vis_grasp(g, cloud)
     # vis_grasp(g_0, cloud)
     # --------------------------------------------------------------------------------
 
@@ -626,7 +658,7 @@ if __name__=='__main__':
     tf_listener = tf2_ros.TransformListener(tf_buffer)
     group, eef_link, touch_links, scene = moveit_init()
 
-    scene = add_objects(scene)
+    # scene = add_objects(scene)
 
     demo_grasp(tf_buffer, group)
     # pointing up to the ceiling
